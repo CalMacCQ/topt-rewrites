@@ -53,7 +53,7 @@ pauli_prop_predicate = GateSetPredicate(
 )
 
 
-def get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
+def _get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.Conditional:
             if cmd.op.op.type == OpType.X:
@@ -77,7 +77,7 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     reversed_circ = reverse_circuit(circ)
     pauli_prop_predicate.verify(reversed_circ)
     circ_prime = _initialise_registers(reversed_circ)
-    pauli_x_args = get_terminal_pauli_x_args(reversed_circ)
+    pauli_x_args = _get_terminal_pauli_x_args(reversed_circ)
     phase_poly_count = 0
     found_match = False
     for cmd in reversed_circ:
