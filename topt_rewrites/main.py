@@ -1,4 +1,4 @@
-from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox
+from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Command
 from pytket.passes import CustomPass
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit
@@ -82,9 +82,12 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     circ_prime = _initialise_registers(circ)
     pauli_x_args = get_terminal_pauli_x_args(circ)
     phase_poly_count = 0
+    found_match = False
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.PhasePolyBox:
-            if pauli_x_args[1] in cmd.qubits:
+            # TODO : Fix bug: this function should only commute one Pauli per call
+            if pauli_x_args[1] in cmd.qubits and not found_match:
+                found_match = True
                 phase_poly_count += 1
                 uxudg_box = phasepolybox_to_conjugation(
                     cmd.op, pauli_x_args[1].index[0], phase_poly_count
@@ -103,4 +106,16 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
         elif cmd.op.type == OpType.CircBox:
             circ_prime.add_gate(cmd.op, cmd.qubits)
 
-    return circ_prime
+    return reverse_circuit(circ_prime)
+
+
+def reverse_circuit(circ: Circuit) -> Circuit:
+    new_circ = _initialise_registers(circ)
+
+    for cmd in reversed(circ.get_commands()):
+        if cmd.op.is_gate():
+            new_circ.add_gate(cmd.op.type, cmd.args)
+        else:
+            new_circ.add_gate(cmd.op, cmd.args)
+
+    return new_circ
