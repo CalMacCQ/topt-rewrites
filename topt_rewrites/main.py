@@ -20,11 +20,7 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
 
     for cmd in circ:
         if cmd.op.type != OpType.H:
-            if cmd.op.is_gate():
-                circ_prime.add_gate(cmd.op.type, cmd.op.params, cmd.qubits)
-            else:
-                # Handle CircBox and other box types
-                circ_prime.add_gate(cmd.op, cmd.qubits)
+            circ_prime.add_gate(cmd.op, cmd.args)
         else:
             circ_prime.add_gate(H_gadget, [cmd.qubits[0], z_ancillas[ancilla_index]])
             circ_prime.Measure(z_ancillas[ancilla_index], ancilla_bits[ancilla_index])
@@ -78,14 +74,14 @@ def phasepolybox_to_conjugation(
 
 
 def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
-    pauli_prop_predicate.verify(circ)
-    circ_prime = _initialise_registers(circ)
-    pauli_x_args = get_terminal_pauli_x_args(circ)
+    reversed_circ = reverse_circuit(circ)
+    pauli_prop_predicate.verify(reversed_circ)
+    circ_prime = _initialise_registers(reversed_circ)
+    pauli_x_args = get_terminal_pauli_x_args(reversed_circ)
     phase_poly_count = 0
     found_match = False
-    for cmd in reversed(circ.get_commands()):
+    for cmd in reversed_circ:
         if cmd.op.type == OpType.PhasePolyBox:
-            # TODO : Fix bug: this function should only commute one Pauli per call
             if pauli_x_args[1] in cmd.qubits and not found_match:
                 found_match = True
                 phase_poly_count += 1
@@ -100,11 +96,25 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
                 )
             else:
                 circ_prime.add_gate(cmd.op, cmd.qubits)
+
         elif cmd.op.type == OpType.Measure:
             circ_prime.Measure(cmd.args[0], cmd.args[1])
 
+        elif cmd.op.type == OpType.Conditional:
+            if cmd.op.op.type != OpType.X:
+                circ_prime.add_gate(cmd.op, cmd.args)
+            elif cmd.op.op.type == OpType.X:
+                if (
+                    tuple(cmd.args) == pauli_x_args
+                ):  # check for matching qubits and bits
+                    pass
+                else:
+                    circ_prime.add_gate(cmd.op, cmd.args)
+            else:
+                circ_prime.add_gate(cmd.op, cmd.args)
+
         elif cmd.op.type == OpType.CircBox:
-            circ_prime.add_gate(cmd.op, cmd.qubits)
+            circ_prime.add_gate(cmd.op, cmd.args)
 
     return reverse_circuit(circ_prime)
 
@@ -113,9 +123,6 @@ def reverse_circuit(circ: Circuit) -> Circuit:
     new_circ = _initialise_registers(circ)
 
     for cmd in reversed(circ.get_commands()):
-        if cmd.op.is_gate():
-            new_circ.add_gate(cmd.op.type, cmd.args)
-        else:
-            new_circ.add_gate(cmd.op, cmd.args)
+        new_circ.add_gate(cmd.op, cmd.args)
 
     return new_circ
