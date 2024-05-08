@@ -9,17 +9,6 @@ new_circ = Circuit(2, name="H-Gadget").H(1).CZ(0, 1).SWAP(0, 1)
 H_gadget = CircBox(new_circ)
 
 
-def phasepolybox_to_conjugation(
-    poly_box: PhasePolyBox, x_index: int, count: int
-) -> CircBox:
-    poly_circ = poly_box.get_circuit()
-    poly_circ_dg = poly_circ.dagger()
-    poly_circ.X(x_index)
-    poly_circ.append(poly_circ_dg)
-    poly_circ.name = f"U_{count} X U_{count}†"
-    return CircBox(poly_circ)
-
-
 def gadgetise_hadamards(circ: Circuit) -> Circuit:
     h_count = circ.n_gates_of_type(OpType.H)
 
@@ -68,12 +57,24 @@ pauli_prop_predicate = GateSetPredicate(
 )
 
 
-def get_terminal_pauli_x_args(circ: Circuit) -> tuple[Qubit, Bit]:
+def get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.Conditional:
-            x_pauli_qubit = cmd.args[0]
-            x_pauli_bit = cmd.args[1]
-    return x_pauli_qubit, x_pauli_bit
+            if cmd.op.op.type == OpType.X:
+                x_pauli_bit = cmd.args[0]
+                x_pauli_qubit = cmd.args[1]
+    return x_pauli_bit, x_pauli_qubit
+
+
+def phasepolybox_to_conjugation(
+    poly_box: PhasePolyBox, x_index: int, count: int
+) -> CircBox:
+    poly_circ = poly_box.get_circuit()
+    poly_circ_dg = poly_circ.dagger()
+    poly_circ.X(x_index)
+    poly_circ.append(poly_circ_dg)
+    poly_circ.name = f"U_{count} X U_{count}†"
+    return CircBox(poly_circ)
 
 
 def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
