@@ -13,9 +13,10 @@ def phasepolybox_to_conjugation(
     poly_box: PhasePolyBox, x_index: int, count: int
 ) -> CircBox:
     poly_circ = poly_box.get_circuit()
+    poly_circ_dg = poly_circ.dagger()
     poly_circ.X(x_index)
-    poly_circ.append(poly_circ.dagger())
-    poly_circ.name = f"U_{count}X U†"
+    poly_circ.append(poly_circ_dg)
+    poly_circ.name = f"U_{count} X U_{count}†"
     return CircBox(poly_circ)
 
 
@@ -33,7 +34,7 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
             if cmd.op.is_gate():
                 circ_prime.add_gate(cmd.op.type, cmd.op.params, cmd.qubits)
             else:
-                # Handle CircBox and other boxes
+                # Handle CircBox and other box types
                 circ_prime.add_gate(cmd.op, cmd.qubits)
         else:
             circ_prime.add_gate(H_gadget, [cmd.qubits[0], z_ancillas[ancilla_index]])
@@ -67,7 +68,7 @@ pauli_prop_predicate = GateSetPredicate(
 )
 
 
-def get_last_pauli_x_args(circ: Circuit) -> tuple[Qubit, Bit]:
+def get_terminal_pauli_x_args(circ: Circuit) -> tuple[Qubit, Bit]:
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.Conditional:
             x_pauli_qubit = cmd.args[0]
@@ -75,26 +76,30 @@ def get_last_pauli_x_args(circ: Circuit) -> tuple[Qubit, Bit]:
     return x_pauli_qubit, x_pauli_bit
 
 
-def propogate_final_pauli_x_gate(circ: Circuit) -> Circuit:
+def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     pauli_prop_predicate.verify(circ)
     circ_prime = _initialise_registers(circ)
-    pauli_x_args = get_pauli_x_args(circ)
+    pauli_x_args = get_terminal_pauli_x_args(circ)
     phase_poly_count = 0
     for cmd in reversed(circ.get_commands()):
-        if cmd.op.type == OpType.Conditional:
-            pass
-        elif cmd.op.type == PhasePolyBox:
-            poly_circ = cmd.op.get_circuit()
-            poly_circ.name = "U_f"
-            poly_circ.X(0)
-            poly_circ.append(poly_circ.dagger())
+        if cmd.op.type == OpType.PhasePolyBox:
+            if pauli_x_args[1] in cmd.qubits:
+                uxudg_box = phasepolybox_to_conjugation(
+                    cmd.op, pauli_x_args[1].index[0], phase_poly_count
+                )
+                circ_prime.add_gate(
+                    uxudg_box,
+                    cmd.qubits,
+                    condition_bits=[pauli_x_args[0]],
+                    condition_value=1,
+                )
+                phase_poly_count += 1
+            else:
+                circ_prime.add_gate(cmd.op, cmd.qubits)
+        elif cmd.op.type == OpType.Measure:
+            circ_prime.Measure(cmd.args[0], cmd.args[1])
 
         elif cmd.op.type == OpType.CircBox:
-            circ_prime.add_gate(cmd.op.type, cmd.op.params, cmd.qubits)
-        # elif cmd.op.type == OpType.PhasePolyBox:
-        #    if
-        #        phase_poly_circ = cmd.op.get_circuit()
-        #        dg_phase_poly = phase_poly_circ.dagger()
-        #    clifford
+            circ_prime.add_gate(cmd.op, cmd.qubits)
 
     return circ_prime

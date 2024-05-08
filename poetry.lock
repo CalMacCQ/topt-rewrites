@@ -1567,6 +1567,21 @@ typing-extensions = ">=4.2,<5.0"
 zx = ["autoray (>=0.6.1)", "quimb (>=1.8,<2.0)"]
 
 [[package]]
+name = "pytket-offline-display"
+version = "0.0.6"
+description = "Python module for displaying pytket circuits when offline."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pytket-offline-display-0.0.6.tar.gz", hash = "sha256:47b5d2162c2172942f4c21e2e69f2b202fb9e6491c71cbaa3804b119ab9be154"},
+    {file = "pytket_offline_display-0.0.6-py3-none-any.whl", hash = "sha256:8eb129bcd8b0200e30162e25de8c6b8381a0902ee288a82f00937fd076ee2f7d"},
+]
+
+[package.dependencies]
+jinja2 = ">=3.0,<4.0"
+pytket = ">=1.20.0"
+
+[[package]]
 name = "pywin32"
 version = "306"
 description = "Python for Window Extensions"
@@ -2281,4 +2296,4 @@ test = ["websockets"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d7bedbe37751279544c4d6065e7255584b46d996e801f49d6306cb92ee0ef223"
+content-hash = "a0bc3f5e37551a7398792ad7aa0ce86368978e4a86339116692f4e509e228288"

@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 pytket = "^1.27.0"
+pytket-offline-display = "^0.0.6"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.2.0"
