@@ -85,6 +85,7 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.PhasePolyBox:
             if pauli_x_args[1] in cmd.qubits:
+                phase_poly_count += 1
                 uxudg_box = phasepolybox_to_conjugation(
                     cmd.op, pauli_x_args[1].index[0], phase_poly_count
                 )
@@ -94,7 +95,6 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
                     condition_bits=[pauli_x_args[0]],
                     condition_value=1,
                 )
-                phase_poly_count += 1
             else:
                 circ_prime.add_gate(cmd.op, cmd.qubits)
         elif cmd.op.type == OpType.Measure:
