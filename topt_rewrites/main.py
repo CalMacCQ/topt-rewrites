@@ -1,12 +1,12 @@
-from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Command
-from pytket.passes import CustomPass
+from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox
+from pytket.passes import CustomPass, RepeatWithMetricPass
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit
 
 
-new_circ = Circuit(2, name="H-Gadget").H(1).CZ(0, 1).SWAP(0, 1)
+fswap_circ = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
 
-H_gadget = CircBox(new_circ)
+fswap = CircBox(fswap_circ)
 
 
 def gadgetise_hadamards(circ: Circuit) -> Circuit:
@@ -16,13 +16,18 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
     z_ancillas = circ_prime.add_q_register("z_ancillas", h_count)
     ancilla_bits = circ_prime.add_c_register("bits", h_count)
 
+    for qubit in z_ancillas:
+        circ_prime.H(qubit)
+
+    circ_prime.add_barrier(list(z_ancillas))
+
     ancilla_index = 0
 
     for cmd in circ:
         if cmd.op.type != OpType.H:
             circ_prime.add_gate(cmd.op, cmd.args)
         else:
-            circ_prime.add_gate(H_gadget, [cmd.qubits[0], z_ancillas[ancilla_index]])
+            circ_prime.add_gate(fswap, [cmd.qubits[0], z_ancillas[ancilla_index]])
             circ_prime.Measure(z_ancillas[ancilla_index], ancilla_bits[ancilla_index])
             circ_prime.X(
                 cmd.qubits[0],
@@ -48,6 +53,18 @@ def _initialise_registers(circ: Circuit) -> Circuit:
     return circ_prime
 
 
+def reverse_circuit(circ: Circuit) -> Circuit:
+    new_circ = _initialise_registers(circ)
+
+    for cmd in reversed(circ.get_commands()):
+        if cmd.op.type == OpType.Barrier:
+            new_circ.add_barrier(cmd.qubits)
+        else:
+            new_circ.add_gate(cmd.op, cmd.args)
+
+    return new_circ
+
+
 pauli_prop_predicate = GateSetPredicate(
     {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional}
 )
@@ -62,14 +79,12 @@ def _get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
     return x_pauli_bit, x_pauli_qubit
 
 
-def phasepolybox_to_conjugation(
-    poly_box: PhasePolyBox, x_index: int, count: int
-) -> CircBox:
+def phasepolybox_to_conjugation(poly_box: PhasePolyBox, x_index: int) -> CircBox:
     poly_circ = poly_box.get_circuit()
     poly_circ_dg = poly_circ.dagger()
     poly_circ.X(x_index)
     poly_circ.append(poly_circ_dg)
-    poly_circ.name = f"U_{count} X U_{count}†"
+    poly_circ.name = "U X U†"
     return CircBox(poly_circ)
 
 
@@ -78,15 +93,13 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     pauli_prop_predicate.verify(reversed_circ)
     circ_prime = _initialise_registers(reversed_circ)
     pauli_x_args = _get_terminal_pauli_x_args(reversed_circ)
-    phase_poly_count = 0
     found_match = False
     for cmd in reversed_circ:
         if cmd.op.type == OpType.PhasePolyBox:
             if pauli_x_args[1] in cmd.qubits and not found_match:
                 found_match = True
-                phase_poly_count += 1
                 uxudg_box = phasepolybox_to_conjugation(
-                    cmd.op, pauli_x_args[1].index[0], phase_poly_count
+                    cmd.op, pauli_x_args[1].index[0]
                 )
                 circ_prime.add_gate(
                     uxudg_box,
@@ -114,15 +127,31 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
                 circ_prime.add_gate(cmd.op, cmd.args)
 
         elif cmd.op.type == OpType.CircBox:
-            circ_prime.add_gate(cmd.op, cmd.args)
+            if cmd.op.circuit_name == "U X U†":
+                pass  # TODO propogate The X through the U X Udg and FSWAP
+            elif cmd.op.circuit_name == "FSWAP":
+                pass
+            else:
+                circ_prime.add_gate(cmd.op, cmd.args)
+
+        elif cmd.op.type == OpType.Barrier:
+            circ_prime.add_barrier(cmd.qubits)
+        else:
+            circ_prime.add_gate(cmd.op.type, cmd.args)
 
     return reverse_circuit(circ_prime)
 
 
-def reverse_circuit(circ: Circuit) -> Circuit:
-    new_circ = _initialise_registers(circ)
+propogate_terminal_pauli = CustomPass(propogate_terminal_pauli_x_gate)
 
-    for cmd in reversed(circ.get_commands()):
-        new_circ.add_gate(cmd.op, cmd.args)
 
-    return new_circ
+def get_n_conditional_paulis(circ: Circuit) -> int:
+    conditional_ops = circ.ops_of_type(OpType.Conditional)
+    conditional_xs = [operation.op.type == OpType.X for operation in conditional_ops]
+
+    return len(conditional_xs)
+
+
+propogate_all_terminal_paulis = RepeatWithMetricPass(
+    propogate_terminal_pauli, get_n_conditional_paulis
+)
