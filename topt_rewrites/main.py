@@ -1,4 +1,4 @@
-from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox
+from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Op
 from pytket.passes import CustomPass, RepeatWithMetricPass
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit
@@ -129,8 +129,8 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
         elif cmd.op.type == OpType.CircBox:
             if cmd.op.circuit_name == "U X U†":
                 pass  # TODO propogate The X through the U X Udg and FSWAP
-            elif cmd.op.circuit_name == "FSWAP":
-                pass
+            # elif cmd.op.circuit_name == "FSWAP":
+            #    pass
             else:
                 circ_prime.add_gate(cmd.op, cmd.args)
 
@@ -145,10 +145,15 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
 propogate_terminal_pauli = CustomPass(propogate_terminal_pauli_x_gate)
 
 
+def is_conditional_pauli_x(operation: Op) -> bool:
+    return operation.op.type == OpType.X
+
+
 def get_n_conditional_paulis(circ: Circuit) -> int:
     conditional_ops = circ.ops_of_type(OpType.Conditional)
-    conditional_xs = [operation.op.type == OpType.X for operation in conditional_ops]
-
+    print(conditional_ops)
+    conditional_xs = list(filter(is_conditional_pauli_x, conditional_ops))
+    print(conditional_xs)
     return len(conditional_xs)
 
 
