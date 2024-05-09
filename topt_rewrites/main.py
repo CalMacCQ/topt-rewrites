@@ -1,4 +1,4 @@
-from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Op
+from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Conditional
 from pytket.passes import CustomPass, RepeatWithMetricPass
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit
@@ -16,8 +16,8 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
     z_ancillas = circ_prime.add_q_register("z_ancillas", h_count)
     ancilla_bits = circ_prime.add_c_register("bits", h_count)
 
-    for qubit in z_ancillas:
-        circ_prime.H(qubit)
+    for ancilla in z_ancillas:
+        circ_prime.H(ancilla)
 
     circ_prime.add_barrier(list(z_ancillas))
 
@@ -145,15 +145,13 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
 propogate_terminal_pauli = CustomPass(propogate_terminal_pauli_x_gate)
 
 
-def is_conditional_pauli_x(operation: Op) -> bool:
+def is_conditional_pauli_x(operation: Conditional) -> bool:
     return operation.op.type == OpType.X
 
 
 def get_n_conditional_paulis(circ: Circuit) -> int:
     conditional_ops = circ.ops_of_type(OpType.Conditional)
-    print(conditional_ops)
     conditional_xs = list(filter(is_conditional_pauli_x, conditional_ops))
-    print(conditional_xs)
     return len(conditional_xs)
 
 
