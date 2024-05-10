@@ -54,9 +54,3 @@ def test_simple_circuit() -> None:
     # draw(circ)
     # PROPOGATE_TERMINAL_PAULI.apply(circ)
     # draw(circ)
-
-
-if __name__ == "__main__":
-    test_hadamard_gadgetisation()
-    test_pauli_pushing()
-    test_simple_circuit()
