@@ -4,17 +4,41 @@ from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit
 
 
-fswap_circ = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
+FSWAP_CIRC = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
 
-fswap = CircBox(fswap_circ)
+FSWAP = CircBox(FSWAP_CIRC)
+
+HADAMARD_REPLACE_PREDICATE = GateSetPredicate({OpType.H, OpType.PhasePolyBox})
+
+
+def get_n_internal_hadamards(circ: Circuit) -> int:
+    assert HADAMARD_REPLACE_PREDICATE.verify(circ)
+
+    total_h_count = circ.n_gates_of_type(OpType.H)
+
+    external_h_count = 0
+
+    for cmd in circ.get_commands():
+        if cmd.op.type == OpType.H:
+            external_h_count += 1
+        elif cmd.op.type == OpType.PhasePolyBox:
+            break
+
+    for cmd in reversed(circ.get_commands()):
+        if cmd.op.type == OpType.H:
+            external_h_count += 1
+        elif cmd.op.type == OpType.PhasePolyBox:
+            break
+
+    return total_h_count - external_h_count
 
 
 def gadgetise_hadamards(circ: Circuit) -> Circuit:
-    h_count = circ.n_gates_of_type(OpType.H)
+    internal_h_count = get_n_internal_hadamards(circ)
 
     circ_prime = Circuit(circ.n_qubits)
-    z_ancillas = circ_prime.add_q_register("z_ancillas", h_count)
-    ancilla_bits = circ_prime.add_c_register("bits", h_count)
+    z_ancillas = circ_prime.add_q_register("z_ancillas", internal_h_count)
+    ancilla_bits = circ_prime.add_c_register("bits", internal_h_count)
 
     for ancilla in z_ancillas:
         circ_prime.H(ancilla)
@@ -27,7 +51,7 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
         if cmd.op.type != OpType.H:
             circ_prime.add_gate(cmd.op, cmd.args)
         else:
-            circ_prime.add_gate(fswap, [cmd.qubits[0], z_ancillas[ancilla_index]])
+            circ_prime.add_gate(FSWAP, [cmd.qubits[0], z_ancillas[ancilla_index]])
             circ_prime.Measure(z_ancillas[ancilla_index], ancilla_bits[ancilla_index])
             circ_prime.X(
                 cmd.qubits[0],
@@ -38,7 +62,7 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
     return circ_prime
 
 
-replace_hadamards = CustomPass(gadgetise_hadamards)
+REPLACE_HADAMARDS = CustomPass(gadgetise_hadamards)
 
 
 def _initialise_registers(circ: Circuit) -> Circuit:
@@ -65,7 +89,7 @@ def reverse_circuit(circ: Circuit) -> Circuit:
     return new_circ
 
 
-pauli_prop_predicate = GateSetPredicate(
+PAULI_PROP_PREDICATE = GateSetPredicate(
     {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional}
 )
 
@@ -90,7 +114,7 @@ def phasepolybox_to_conjugation(poly_box: PhasePolyBox, x_index: int) -> CircBox
 
 def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     reversed_circ = reverse_circuit(circ)
-    pauli_prop_predicate.verify(reversed_circ)
+    PAULI_PROP_PREDICATE.verify(reversed_circ)
     circ_prime = _initialise_registers(reversed_circ)
     pauli_x_args = _get_terminal_pauli_x_args(reversed_circ)
     found_match = False
@@ -142,7 +166,7 @@ def propogate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:
     return reverse_circuit(circ_prime)
 
 
-propogate_terminal_pauli = CustomPass(propogate_terminal_pauli_x_gate)
+PROPOGATE_TERMINAL_PAULI = CustomPass(propogate_terminal_pauli_x_gate)
 
 
 def is_conditional_pauli_x(operation: Conditional) -> bool:
@@ -155,32 +179,6 @@ def get_n_conditional_paulis(circ: Circuit) -> int:
     return len(conditional_xs)
 
 
-hadamard_replace_predicate = GateSetPredicate({OpType.H, OpType.PhasePolyBox})
-
-
-def get_n_internal_hadamards(circ: Circuit) -> int:
-
-    assert hadamard_replace_predicate.verify(circ)
-
-    total_h_count = circ.n_gates_of_type(OpType.H)
-
-    external_h_count = 0
-
-    for cmd in circ.get_commands():
-        if cmd.op.type == OpType.H:
-            external_h_count += 1
-        elif cmd.op.type == OpType.PhasePolyBox:
-            break
-
-    for cmd in reversed(circ.get_commands()):
-        if cmd.op.type == OpType.H:
-            external_h_count += 1
-        elif cmd.op.type == OpType.PhasePolyBox:
-            break
-
-    return total_h_count - external_h_count
-
-
-propogate_all_terminal_paulis = RepeatWithMetricPass(
-    propogate_terminal_pauli, get_n_conditional_paulis
+PROPOGATE_ALL_TERMINAL_PAULIS = RepeatWithMetricPass(
+    PROPOGATE_TERMINAL_PAULI, get_n_conditional_paulis
 )
