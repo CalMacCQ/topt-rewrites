@@ -155,6 +155,32 @@ def get_n_conditional_paulis(circ: Circuit) -> int:
     return len(conditional_xs)
 
 
+hadamard_replace_predicate = GateSetPredicate({OpType.H, OpType.PhasePolyBox})
+
+
+def get_n_internal_hadamards(circ: Circuit) -> int:
+
+    assert hadamard_replace_predicate.verify(circ)
+
+    total_h_count = circ.n_gates_of_type(OpType.H)
+
+    external_h_count = 0
+
+    for cmd in circ.get_commands():
+        if cmd.op.type == OpType.H:
+            external_h_count += 1
+        elif cmd.op.type == OpType.PhasePolyBox:
+            break
+
+    for cmd in reversed(circ.get_commands()):
+        if cmd.op.type == OpType.H:
+            external_h_count += 1
+        elif cmd.op.type == OpType.PhasePolyBox:
+            break
+
+    return total_h_count - external_h_count
+
+
 propogate_all_terminal_paulis = RepeatWithMetricPass(
     propogate_terminal_pauli, get_n_conditional_paulis
 )
