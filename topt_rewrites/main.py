@@ -67,13 +67,11 @@ REPLACE_HADAMARDS = CustomPass(gadgetise_hadamards)
 
 def _initialise_registers(circ: Circuit) -> Circuit:
     circ_prime = Circuit()
-    for qreg in circ.q_registers:
-        for qubit in qreg:
-            circ_prime.add_qubit(qubit)
+    for qb in circ.qubits:
+        circ_prime.add_qubit(qb)
 
-    for creg in circ.c_registers:
-        for bit in creg:
-            circ_prime.add_bit(bit)
+    for bit in circ.bits:
+        circ_prime.add_bit(bit)
     return circ_prime
 
 
