@@ -4,6 +4,8 @@ from topt_rewrites.main import (
     get_n_conditional_paulis,
     # PROPOGATE_TERMINAL_PAULI,
     get_n_internal_hadamards,
+    check_rz_angles,
+    check_phasepolybox,
 )
 from pytket.passes import ComposePhasePolyBoxes, DecomposeBoxes
 
@@ -35,6 +37,24 @@ def test_h_gadgetisation() -> None:
     assert circ.n_qubits == n_qubits_without_ancillas + n_internal_h_gates
 
 
+def test_circuit_utils() -> None:
+    circ = (
+        Circuit(2)
+        .CX(0, 1)
+        .Rz(1 / 4, 1)
+        .CX(0, 1)
+        .Rz(-1 / 4, 1)
+        .CX(0, 1)
+        .Rz(0.75, 1)
+        .CX(0, 1)
+        .Rz(-0.75, 0)
+        .Rz(-1.25, 1)
+    )
+    assert check_rz_angles(circ)
+    circ.Rz(0.61, 0)
+    assert not check_rz_angles(circ)
+
+
 def test_simple_circuit() -> None:
     circ = Circuit(3)
     circ.CX(0, 1).T(1).CX(0, 1).H(0).CX(0, 2).T(2).CX(0, 2).CX(0, 1).T(1).H(0).CX(0, 1)
@@ -54,3 +74,6 @@ def test_simple_circuit() -> None:
     # draw(circ)
     # PROPOGATE_TERMINAL_PAULI.apply(circ)
     # draw(circ)
+
+
+test_circuit_utils()

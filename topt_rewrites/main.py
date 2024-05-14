@@ -1,6 +1,6 @@
 from pytket.circuit import Circuit, OpType, CircBox, PhasePolyBox, Conditional
 from pytket.passes import CustomPass, RepeatWithMetricPass
-from pytket.predicates import GateSetPredicate
+from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
 from pytket.unit_id import Bit, Qubit
 
 
@@ -65,6 +65,32 @@ def gadgetise_hadamards(circ: Circuit) -> Circuit:
 REPLACE_HADAMARDS = CustomPass(gadgetise_hadamards)
 
 
+def check_rz_angles(circ: Circuit) -> bool:
+    """
+    Check that all Rz gates in a Circuit can be implemented with Clifford+T gates.
+    """
+    assert NoSymbolsPredicate().verify(circ)
+    assert circ.n_gates_of_type(OpType.Rz) > 0
+
+    rz_op_list = circ.ops_of_type(OpType.Rz)
+
+    allowed_non_clifford_angles = [0.25, 0.75, 1.25, 1.75]
+
+    for op in rz_op_list:
+        if not op.is_clifford():
+            if abs(op.params[0]) % 2 in allowed_non_clifford_angles:
+                pass
+            else:
+                return False
+
+    return True
+
+
+def check_phasepolybox(ppb: PhasePolyBox) -> bool:
+    circ = ppb.get_circuit()
+    return check_rz_angles(circ)
+
+
 def _initialise_registers(circ: Circuit) -> Circuit:
     circ_prime = Circuit()
     for qb in circ.qubits:
@@ -93,6 +119,7 @@ PAULI_PROP_PREDICATE = GateSetPredicate(
 
 
 def _get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
+    assert get_n_conditional_paulis(circ) > 0
     for cmd in reversed(circ.get_commands()):
         if cmd.op.type == OpType.Conditional:
             if cmd.op.op.type == OpType.X:
