@@ -2,7 +2,7 @@ from pytket.circuit import Circuit, OpType, CircBox
 from topt_rewrites.main import (
     REPLACE_HADAMARDS,
     get_n_conditional_paulis,
-    # PROPOGATE_TERMINAL_PAULI,
+    # PROPAGATE_TERMINAL_PAULI,
     get_n_internal_hadamards,
     check_rz_angles,
     check_phasepolybox,
@@ -69,10 +69,10 @@ def test_simple_circuit() -> None:
     assert get_n_conditional_paulis(circ) == n_internal_h_gates
     # draw(circ)
     # assert get_n_conditional_paulis(circ) == 2
-    # PROPOGATE_TERMINAL_PAULI.apply(circ)
+    # PROPAGATE_TERMINAL_PAULI.apply(circ)
     # assert get_n_conditional_paulis(circ) == 1
     # draw(circ)
-    # PROPOGATE_TERMINAL_PAULI.apply(circ)
+    # PROPAGATE_TERMINAL_PAULI.apply(circ)
     # draw(circ)
 
 
