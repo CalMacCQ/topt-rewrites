@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pytket._tket.unit_id import Bit, Circuit, Qubit
-from pytket.circuit import CircBox, Conditional, OpType, PhasePolyBox
+from pytket._tket import Bit, Qubit  # noqa: TCH002
+from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox
 from pytket.passes import CustomPass, RepeatWithMetricPass
 from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
 
@@ -15,7 +15,7 @@ HADAMARD_REPLACE_PREDICATE = GateSetPredicate({OpType.H, OpType.PhasePolyBox})
 
 
 def get_n_internal_hadamards(circ: Circuit) -> int:
-    """Returns the number of Hadamard gates between the first and last non-Clifford gate in the Circuit."""  # noqa: D401
+    """Return the number of Hadamard gates between the first and last non-Clifford gate in the Circuit."""
     if not HADAMARD_REPLACE_PREDICATE.verify(circ):
         pred_msg = "Circuit must contain only OpType.H and OpType.PhasePolyBox OpTypes."
         raise ValueError(pred_msg)
@@ -125,7 +125,7 @@ def _reverse_circuit(circ: Circuit) -> Circuit:
 
 
 PAULI_PROP_PREDICATE = GateSetPredicate(
-    {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional}
+    {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional},
 )
 
 
@@ -167,7 +167,9 @@ def _get_n_terminal_boxes(circ: Circuit) -> int:
 def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
     """Propogates a single Pauli X gate to the end of the Circuit."""
     reversed_circ = _reverse_circuit(circ)
-    PAULI_PROP_PREDICATE.verify(reversed_circ)
+    if not PAULI_PROP_PREDICATE.verify(reversed_circ):
+        err_msg = "Gateset needs to be {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional}."
+        raise ValueError(err_msg)
     circ_prime = _initialise_registers(reversed_circ)
     pauli_x_args = _get_terminal_pauli_x_args(reversed_circ)
     found_match = False
@@ -176,7 +178,8 @@ def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
             if pauli_x_args[1] in cmd.qubits and not found_match:
                 found_match = True
                 uxudg_box = _phasepolybox_to_conjugation(
-                    cmd.op, pauli_x_args[1].index[0]
+                    cmd.op,
+                    pauli_x_args[1].index[0],
                 )
                 circ_prime.add_gate(
                     uxudg_box,
@@ -234,5 +237,6 @@ def get_n_conditional_paulis(circ: Circuit) -> int:
 
 
 PROPOGATE_ALL_TERMINAL_PAULIS = RepeatWithMetricPass(
-    PROPAGATE_TERMINAL_PAULI, get_n_conditional_paulis
+    PROPAGATE_TERMINAL_PAULI,
+    get_n_conditional_paulis,
 )
