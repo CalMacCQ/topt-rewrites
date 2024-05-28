@@ -195,9 +195,8 @@ def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
                     condition_bits=[pauli_x_args[0]],
                     condition_value=1,
                 )
-                circ_prime.add_gate(cmd.op, cmd.qubits)
-            else:
-                circ_prime.add_gate(cmd.op, cmd.qubits)
+            # Add PhasePolyBox as usual in both cases
+            circ_prime.add_gate(cmd.op, cmd.qubits)
 
         elif cmd.op.type == OpType.Measure:
             circ_prime.Measure(cmd.args[0], cmd.args[1])
