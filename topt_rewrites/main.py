@@ -195,6 +195,7 @@ def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
                     condition_bits=[pauli_x_args[0]],
                     condition_value=1,
                 )
+                circ_prime.add_gate(cmd.op, cmd.qubits)
             else:
                 circ_prime.add_gate(cmd.op, cmd.qubits)
 
