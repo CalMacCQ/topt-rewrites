@@ -248,3 +248,25 @@ PROPOGATE_ALL_TERMINAL_PAULIS = RepeatWithMetricPass(
     PROPAGATE_TERMINAL_PAULI,
     get_n_conditional_paulis,
 )
+
+
+def _get_v_box(circ: Circuit) -> CircBox:
+
+    v_circ = _initialise_registers(circ)
+    v_circ.name = "V"
+
+    reversed_circ = _reverse_circuit(circ)
+
+    for cmd in reversed_circ:
+        if cmd.op.type == OpType.Measure:
+            pass
+        elif cmd.op.type == OpType.Conditional:
+            if cmd.op.op.type == OpType.X:
+                break
+        else:
+            v_circ.add_gate(cmd.op, cmd.qubits)
+
+    # Remove unnecessary classical bits.
+    v_circ.remove_blank_wires()
+
+    return CircBox(v_circ)
