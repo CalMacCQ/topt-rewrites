@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pytket._tket import Bit, Qubit  # noqa: TCH002
+from pytket.unit_id import Bit, Qubit  # noqa: TCH002
 from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox
 from pytket.passes import CustomPass, RepeatWithMetricPass
 from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
@@ -124,9 +124,17 @@ def _reverse_circuit(circ: Circuit) -> Circuit:
     return new_circ
 
 
-PAULI_PROP_PREDICATE = GateSetPredicate(
-    {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional},
-)
+PAULI_PROP_GATES = {
+    OpType.PhasePolyBox,
+    OpType.H,
+    OpType.X,
+    OpType.CircBox,
+    OpType.Measure,
+    OpType.Conditional,
+    OpType.Barrier,
+}
+
+PAULI_PROP_PREDICATE = GateSetPredicate(PAULI_PROP_GATES)
 
 
 def _get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
@@ -166,10 +174,10 @@ def _get_n_terminal_boxes(circ: Circuit) -> int:
 
 def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
     """Propogates a single Pauli X gate to the end of the Circuit."""
+    if not PAULI_PROP_PREDICATE.verify(circ):
+        msg = f"Circuit must be in the {PAULI_PROP_GATES} gateset."
+        raise ValueError(msg)
     reversed_circ = _reverse_circuit(circ)
-    if not PAULI_PROP_PREDICATE.verify(reversed_circ):
-        err_msg = "Gateset needs to be {OpType.Measure, OpType.CircBox, OpType.PhasePolyBox, OpType.Conditional}."
-        raise ValueError(err_msg)
     circ_prime = _initialise_registers(reversed_circ)
     pauli_x_args = _get_terminal_pauli_x_args(reversed_circ)
     found_match = False
