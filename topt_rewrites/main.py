@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
-from pytket.unit_id import Bit, Qubit  # noqa: TCH002
 from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox
-from pytket.passes import CustomPass, RepeatWithMetricPass
+from pytket.passes import (
+    CustomPass,
+    RepeatWithMetricPass,
+    ComposePhasePolyBoxes,
+    DecomposeBoxes,
+    FlattenRegisters,
+)
 from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
+from pytket.unit_id import Bit, Qubit  # noqa: TCH002
 
 FSWAP_CIRC = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
 
@@ -148,13 +154,16 @@ def _get_terminal_pauli_x_args(circ: Circuit) -> tuple[Bit, Qubit]:
     return x_pauli_bit, x_pauli_qubit
 
 
-def _phasepolybox_to_conjugation(poly_box: PhasePolyBox, x_index: int) -> CircBox:
-    poly_circ = poly_box.get_circuit()
-    poly_circ_dg = poly_circ.dagger()
-    poly_circ.X(x_index)
-    poly_circ.append(poly_circ_dg)
-    poly_circ.name = "U X U†"
-    return CircBox(poly_circ)
+def _get_conjugation(box: PhasePolyBox | CircBox, x_index: int) -> CircBox:
+    circ = box.get_circuit()
+    circ_dg = circ.dagger()
+    circ.X(x_index)
+    circ.append(circ_dg)
+    if isinstance(box, PhasePolyBox):
+        circ.name = "U X U†"
+    else:
+        circ.name = "V X V†"
+    return CircBox(circ)
 
 
 def _get_n_terminal_boxes(circ: Circuit) -> int:
@@ -185,7 +194,7 @@ def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
         if cmd.op.type == OpType.PhasePolyBox:
             if pauli_x_args[1] in cmd.qubits and not found_match:
                 found_match = True
-                uxudg_box = _phasepolybox_to_conjugation(
+                uxudg_box = _get_conjugation(
                     cmd.op,
                     pauli_x_args[1].index[0],
                 )
@@ -270,3 +279,27 @@ def _get_v_box(circ: Circuit) -> CircBox:
     v_circ.remove_blank_wires()
 
     return CircBox(v_circ)
+
+
+# from pytket.circuit.display import view_browser as draw
+#
+#
+# def _build_unitary_subcircuit(circ: Circuit) -> Circuit:
+#    circ_prime = _initialise_registers(circ)
+#
+#    for cmd in circ:
+#        if cmd.op.type == OpType.Measure or OpType.Conditional:
+#            pass
+#        elif cmd.op.type == OpType.Barrier:
+#            circ_prime.add_barrier(cmd.qubits)
+#        else:
+#            circ_prime.add_gate(cmd.op, cmd.args)
+#
+#        circ_prime.remove_blank_wires()
+#        DecomposeBoxes().apply(circ_prime)
+#        draw(circ_prime)
+#        FlattenRegisters().apply(circ_prime)
+#        ComposePhasePolyBoxes().apply(circ_prime)
+#        circ_prime.add_gate(cmd.op, cmd.args)
+#    return circ_prime
+#
