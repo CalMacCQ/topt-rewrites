@@ -166,21 +166,6 @@ def _get_conjugation(box: PhasePolyBox | CircBox, x_index: int) -> CircBox:
     return CircBox(circ)
 
 
-def _get_n_terminal_boxes(circ: Circuit) -> int:
-    PAULI_PROP_PREDICATE.verify(circ)
-    phase_poly_count = 0
-    backwards_circuit = _reverse_circuit(circ)
-    for cmd in backwards_circuit:
-        match cmd.op.type:
-            case OpType.PhasePolyBox:
-                phase_poly_count += 1
-            case OpType.CircBox if cmd.op.circuit_name == "U X U†":
-                phase_poly_count += 1
-            case OpType.Conditional if cmd.op.op.type == OpType.X:
-                break
-    return phase_poly_count
-
-
 def propagate_terminal_pauli_x_gate(circ: Circuit) -> Circuit:  # noqa: PLR0912
     """Propogates a single Pauli X gate to the end of the Circuit."""
     if not PAULI_PROP_PREDICATE.verify(circ):
@@ -279,6 +264,39 @@ def _get_v_box(circ: Circuit) -> CircBox:
     v_circ.remove_blank_wires()
 
     return CircBox(v_circ)
+
+
+def _construct_partial_circuit(circ: Circuit) -> Circuit:
+    if get_n_conditional_paulis(circ) < 1:
+        msg = "Circuit contains no conditional X gates."
+        raise ValueError(msg)
+
+    new_circ = _initialise_registers(circ)
+
+    for cmd in circ:
+        if cmd.op.type == Conditional:
+            if cmd.op.op.type == OpType.X:
+                break
+        else:
+            new_circ.add_gate(cmd.op, cmd.qubits)
+    return new_circ
+
+
+def _construct_full_circuit(
+    circ: Circuit,
+    v_operator: CircBox,
+    x_index: int,
+) -> Circuit:
+    normal_circ = _construct_partial_circuit(circ)
+    normal_circ.add_gate(v_operator, circ.qubits)
+    vxvdg_box = _get_conjugation(v_operator, x_index)
+    normal_circ.add_gate(
+        vxvdg_box,
+        circ.qubits,
+        condition_bits=[circ.bits[0]],
+        condition_value=1,
+    )
+    return normal_circ
 
 
 # from pytket.circuit.display import view_browser as draw
