@@ -288,7 +288,6 @@ def _construct_full_circuit(
     x_index: int,
 ) -> Circuit:
     normal_circ = _construct_partial_circuit(circ)
-    normal_circ.add_gate(v_operator, circ.qubits)
     vxvdg_box = _get_conjugation(v_operator, x_index)
     normal_circ.add_gate(
         vxvdg_box,
