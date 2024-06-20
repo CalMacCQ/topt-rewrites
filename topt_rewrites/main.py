@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
-from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox, Command
+from pytket.circuit import (
+    CircBox,
+    Circuit,
+    Command,
+    Conditional,
+    OpType,
+    PauliExpCommutingSetBox,
+    PhasePolyBox,
+)
+from pytket.extensions.qiskit import qiskit_to_tk
 from pytket.passes import (
     CustomPass,
-    RepeatWithMetricPass,
-    ComposePhasePolyBoxes,
     DecomposeBoxes,
-    FlattenRegisters,
+    RepeatWithMetricPass,
 )
+from pytket.pauli import Pauli, QubitPauliTensor
 from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
+from pytket.tableau import UnitaryTableau, UnitaryTableauBox
 from pytket.unit_id import Bit, Qubit  # noqa: TCH002
-from pytket.tableau import UnitaryTableauBox, UnitaryTableau
-from pytket.extensions.qiskit import qiskit_to_tk
-
 from qiskit.synthesis import synth_cnot_count_full_pmh
-from pytket.pauli import QubitPauliTensor, Pauli
-from pytket.circuit import PauliExpCommutingSetBox
-
 
 FSWAP_CIRC = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
 
