@@ -1,5 +1,5 @@
-from pytket.circuit import Circuit, OpType
-from pytket.extensions.offline_display import view_browser as draw
+from pytket.circuit import Circuit, OpType, PhasePolyBox
+from pytket.circuit.display import view_browser as draw
 from pytket.passes import ComposePhasePolyBoxes
 
 from topt_rewrites.main import (
@@ -8,7 +8,14 @@ from topt_rewrites.main import (
     check_rz_angles,
     get_n_conditional_paulis,
     get_n_internal_hadamards,
+    _parities_to_pauli_tensors,
+    _get_phase_gadget_circuit,
 )
+
+# _get_cnot_circuit,
+# _get_reversible_tableau,
+# _get_clifford_circuit,
+
 
 # def test_h_gadgetisation() -> None:
 #    circ = (
@@ -63,7 +70,7 @@ def test_simple_circuit() -> None:
     assert circ.n_gates_of_type(OpType.H) == 2
     n_internal_h_gates = get_n_internal_hadamards(circ)
     assert n_internal_h_gates == 2
-    # draw(circ)
+    draw(circ)
     REPLACE_HADAMARDS.apply(circ)
     assert circ.n_qubits == 5
     assert get_n_conditional_paulis(circ) == n_internal_h_gates
@@ -76,4 +83,16 @@ def test_simple_circuit() -> None:
     # draw(circ)
 
 
-test_simple_circuit()
+def test_clifford() -> None:
+    circ = Circuit(3)
+    circ.CX(0, 1).T(1).CX(0, 1).H(0).CX(0, 2).T(2).CX(0, 2).CX(0, 1).T(1).H(0).CX(0, 1)
+    ComposePhasePolyBoxes().apply(circ)
+    # draw(circ)
+    for cmd in circ:
+        if cmd.op.type == OpType.PhasePolyBox:
+            print(cmd.op.phase_polynomial)
+            tensors = _parities_to_pauli_tensors(cmd.op)
+            draw(_get_phase_gadget_circuit(tensors))
+
+
+test_clifford()

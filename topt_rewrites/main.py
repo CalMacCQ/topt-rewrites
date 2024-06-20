@@ -12,6 +12,13 @@ from pytket.passes import (
 )
 from pytket.predicates import GateSetPredicate, NoSymbolsPredicate
 from pytket.unit_id import Bit, Qubit  # noqa: TCH002
+from pytket.tableau import UnitaryTableauBox, UnitaryTableau
+from pytket.extensions.qiskit import qiskit_to_tk
+
+from qiskit.synthesis import synth_cnot_count_full_pmh
+from pytket.pauli import QubitPauliTensor, Pauli
+from pytket.circuit import PauliExpCommutingSetBox
+
 
 FSWAP_CIRC = Circuit(2, name="FSWAP").CZ(0, 1).SWAP(0, 1)
 
@@ -320,3 +327,87 @@ def _construct_full_circuit(
 #        circ_prime.add_gate(cmd.op, cmd.args)
 #    return circ_prime
 #
+
+PAULI_DICT = {
+    Pauli.I: OpType.noop,
+    Pauli.X: OpType.X,
+    Pauli.Y: OpType.Y,
+    Pauli.Z: OpType.Z,
+}
+
+
+def _get_new_pauli(circ: Circuit, tableau: UnitaryTableauBox) -> Circuit:
+    pass
+
+
+def _get_reversible_tableau(pbox: PhasePolyBox) -> UnitaryTableau:
+    # cheat by synthesising the CNOT circuit with qiskit and converting
+    qc = synth_cnot_count_full_pmh(pbox.linear_transformation, section_size=2)
+    qc2 = qc.reverse_bits()  # correct for endianness
+    tkc_cnot = qiskit_to_tk(qc2)
+    return UnitaryTableau(tkc_cnot)
+
+
+def _parities_to_pauli_tensors(pbox: PhasePolyBox) -> list[QubitPauliTensor]:
+    phase_poly = pbox.phase_polynomial
+    tensor_list = []
+    for parity, phase in phase_poly.items():
+        pauli_list = []
+        qubit_list = []
+        for count, boolean in enumerate(parity):
+            qubit_list.append(Qubit(count))
+            if boolean:
+                pauli_list.append(Pauli.Z)
+            else:
+                pauli_list.append(Pauli.I)
+
+        pauli_tensor = QubitPauliTensor(
+            qubits=qubit_list,
+            paulis=pauli_list,
+            coeff=phase,
+        )
+        tensor_list.append(pauli_tensor)
+
+    return tensor_list
+
+
+def _get_clifford_circuit(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> Circuit:
+    tableau = _get_reversible_tableau(pbox)
+    new_pauli = tableau.get_row_product(input_pauli)
+    pauli_tensors = _parities_to_pauli_tensors(pbox.phase_polynomial)
+    s_prime, p_prime = _get_updated_paulis(pauli_tensors, new_pauli)
+    s_prime_circ = _get_phase_gadget_circuit(s_prime)
+    pass
+
+    # for letter in QubitPauliTensor.string.to_list():
+
+
+def _get_updated_paulis(
+    pauli_tensors: list[QubitPauliTensor], new_pauli: QubitPauliTensor
+) -> list[QubitPauliTensor]:
+
+    for pauli_op in pauli_tensors:
+        if not pauli_op.commutes_with(new_pauli):
+            pauli_op.coeff *= 2
+
+    return pauli_tensors, new_pauli
+
+
+def _get_phase_gadget_circuit(pauli_tensors: list[QubitPauliTensor]) -> Circuit:
+
+    pauli_ops = []
+    for tensor in pauli_tensors:
+        pauli_list = list(tensor.string.map.values())
+        pair = (pauli_list, tensor.coeff.real)
+        pauli_ops.append(pair)
+
+    pauli_gadgets_sequence = PauliExpCommutingSetBox(pauli_ops)
+    n_qubits = pauli_gadgets_sequence.n_qubits
+
+    pauli_gadget_circ = Circuit(n_qubits).add_gate(
+        pauli_gadgets_sequence, list(range(n_qubits))
+    )
+
+    DecomposeBoxes().apply(pauli_gadget_circ)
+
+    return pauli_gadget_circ
