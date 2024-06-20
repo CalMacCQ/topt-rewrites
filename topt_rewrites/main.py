@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox
+from pytket.circuit import CircBox, Circuit, Conditional, OpType, PhasePolyBox, Command
 from pytket.passes import (
     CustomPass,
     RepeatWithMetricPass,
@@ -35,21 +35,25 @@ def get_n_internal_hadamards(circ: Circuit) -> int:
 
     total_h_count = circ.n_gates_of_type(OpType.H)
 
-    external_h_count = 0
+    # Count number of Hadamards until we encounter a PhasePolyBox
+    lhs_count = _count_hadamards(circ.get_commands())
 
-    for cmd in circ.get_commands():
+    # Same but from the end of the circuit
+    rhs_count = _count_hadamards(reversed(circ.get_commands()))
+
+    # TODO add handling for when a PhasePolyBox is Clifford
+
+    return total_h_count - (lhs_count + rhs_count)
+
+
+def _count_hadamards(commands: list[Command]) -> int:
+    h_count = 0
+    for cmd in commands:
         if cmd.op.type == OpType.H:
-            external_h_count += 1
+            h_count += 1
         elif cmd.op.type == OpType.PhasePolyBox:
             break
-
-    for cmd in reversed(circ.get_commands()):
-        if cmd.op.type == OpType.H:
-            external_h_count += 1
-        elif cmd.op.type == OpType.PhasePolyBox:
-            break
-
-    return total_h_count - external_h_count
+    return h_count
 
 
 def gadgetise_hadamards(circ: Circuit) -> Circuit:
@@ -383,7 +387,8 @@ def _get_clifford_circuit(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> 
 
 
 def _get_updated_paulis(
-    pauli_tensors: list[QubitPauliTensor], new_pauli: QubitPauliTensor
+    pauli_tensors: list[QubitPauliTensor],
+    new_pauli: QubitPauliTensor,
 ) -> list[QubitPauliTensor]:
 
     for pauli_op in pauli_tensors:
@@ -405,7 +410,8 @@ def _get_phase_gadget_circuit(pauli_tensors: list[QubitPauliTensor]) -> Circuit:
     n_qubits = pauli_gadgets_sequence.n_qubits
 
     pauli_gadget_circ = Circuit(n_qubits).add_gate(
-        pauli_gadgets_sequence, list(range(n_qubits))
+        pauli_gadgets_sequence,
+        list(range(n_qubits)),
     )
 
     DecomposeBoxes().apply(pauli_gadget_circ)
