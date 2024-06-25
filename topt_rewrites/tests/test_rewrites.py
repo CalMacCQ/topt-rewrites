@@ -1,6 +1,6 @@
 from pytket.circuit import Circuit, OpType, PhasePolyBox
 from pytket.circuit.display import view_browser as draw
-from pytket.passes import ComposePhasePolyBoxes
+from pytket.passes import ComposePhasePolyBoxes, DecomposeBoxes
 from pytket.pauli import QubitPauliTensor, Pauli
 from pytket.qasm import circuit_to_qasm, circuit_from_qasm
 
@@ -10,8 +10,6 @@ from topt_rewrites.main import (
     check_rz_angles,
     get_n_conditional_paulis,
     get_n_internal_hadamards,
-    _parities_to_pauli_tensors,
-    _get_phase_gadget_circuit,
     _get_circuit_fragments,
 )
 
@@ -20,31 +18,27 @@ from topt_rewrites.main import (
 # _get_clifford_circuit,
 
 
-# def test_h_gadgetisation() -> None:
-#    circ = (
-#        Circuit(4)
-#        .T(0)
-#        .CX(0, 3)
-#        .CX(2, 1)
-#        .CX(3, 1)
-#        .T(3)
-#        .H(0)
-#        .H(1)
-#        .CZ(0, 3)
-#        .H(2)
-#        .CRy(0.25, 0, 3)
-#    )
-#    n_qubits_without_ancillas = circ.n_qubits
-#    draw(circ)
-#    DecomposeBoxes().apply(circ)
-#    ComposePhasePolyBoxes().apply(circ)
-#    draw(circ)
-#    n_internal_h_gates = get_n_internal_hadamards(circ)
-#    REPLACE_HADAMARDS.apply(circ)
-#    draw(circ)
-#    assert get_n_conditional_paulis(circ) == n_internal_h_gates
-#    assert circ.n_qubits == n_qubits_without_ancillas + n_internal_h_gates
-#
+def test_h_gadgetisation() -> None:
+    circ = (
+        Circuit(4)
+        .T(0)
+        .CX(0, 3)
+        .CX(2, 1)
+        .CX(3, 1)
+        .T(3)
+        .H(0)
+        .H(1)
+        .CZ(0, 3)
+        .H(2)
+        .CRy(0.25, 0, 3)
+    )
+    n_qubits_without_ancillas = circ.n_qubits
+    DecomposeBoxes().apply(circ)
+    ComposePhasePolyBoxes().apply(circ)
+    n_internal_h_gates = get_n_internal_hadamards(circ)
+    REPLACE_HADAMARDS.apply(circ)
+    assert get_n_conditional_paulis(circ) == n_internal_h_gates
+    assert circ.n_qubits == n_qubits_without_ancillas + n_internal_h_gates
 
 
 def test_circuit_utils() -> None:
