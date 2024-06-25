@@ -387,10 +387,10 @@ def _get_circuit_fragments(
     # L: Linear reversible transformation
 
     # Compute Tableau form of L.
-    l_tableau = _get_reversible_tableau(pbox)
+    l_tableau: UnitaryTableau = _get_reversible_tableau(pbox)
 
     # Updated Pauli Tensor P'. P' = L P L†.
-    new_pauli = l_tableau.get_row_product(input_pauli)
+    new_pauli: QubitPauliTensor = l_tableau.get_row_product(input_pauli)
 
     # Create new circuit implementing P'
     pauli_prime_circ = Circuit(pbox.n_qubits)
