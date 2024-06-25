@@ -378,15 +378,36 @@ def _parities_to_pauli_tensors(pbox: PhasePolyBox) -> list[QubitPauliTensor]:
     return tensor_list
 
 
-def _get_clifford_circuit(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> Circuit:
-    tableau = _get_reversible_tableau(pbox)
-    new_pauli = tableau.get_row_product(input_pauli)
-    pauli_tensors = _parities_to_pauli_tensors(pbox.phase_polynomial)
-    s_prime, p_prime = _get_updated_paulis(pauli_tensors, new_pauli)
-    s_prime_circ = _get_phase_gadget_circuit(s_prime)
-    pass
+def _get_circuit_fragments(
+    pbox: PhasePolyBox,
+    input_pauli: QubitPauliTensor,
+) -> tuple[Circuit, Circuit]:
+    # p_box = S L
+    # S: Sequence of {Z, I} Phase gadgets
+    # L: Linear reversible transformation
 
-    # for letter in QubitPauliTensor.string.to_list():
+    # Compute Tableau form of L.
+    l_tableau = _get_reversible_tableau(pbox)
+
+    # Updated Pauli Tensor P'. P' = L P L†.
+    new_pauli = l_tableau.get_row_product(input_pauli)
+
+    # Create new circuit implementing P'
+    pauli_prime_circ = Circuit(pbox.n_qubits)
+    for qubit, pauli_op in new_pauli.string.map.items():
+        pauli_prime_circ.add_gate(PAULI_DICT[pauli_op], [qubit])
+
+    # Convert (True, False) terms to Pauli.Z, Pauli.I in a QubitPauliTensor.
+    pauli_tensors = _parities_to_pauli_tensors(pbox)
+
+    # Get updated phase gadget Sequence S' and synthesise circuit.
+    s_prime = _get_updated_paulis(pauli_tensors, new_pauli)
+    s_prime_circ = _get_phase_gadget_circuit(s_prime)
+
+    return pauli_prime_circ, s_prime_circ
+
+
+# def get_clifford_circuit()
 
 
 def _get_updated_paulis(
@@ -398,7 +419,7 @@ def _get_updated_paulis(
         if not pauli_op.commutes_with(new_pauli):
             pauli_op.coeff *= 2
 
-    return pauli_tensors, new_pauli
+    return pauli_tensors
 
 
 def _get_phase_gadget_circuit(pauli_tensors: list[QubitPauliTensor]) -> Circuit:
