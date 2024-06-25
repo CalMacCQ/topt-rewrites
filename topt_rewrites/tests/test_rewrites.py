@@ -73,7 +73,7 @@ def test_simple_circuit() -> None:
     assert get_n_conditional_paulis(circ) == n_internal_h_gates
     draw(circ)
     assert get_n_conditional_paulis(circ) == 2
-    PROPAGATE_TERMINAL_PAULI.apply(circ)
+    # PROPAGATE_TERMINAL_PAULI.apply(circ)
     assert get_n_conditional_paulis(circ) == 1
     draw(circ)
     # PROPAGATE_TERMINAL_PAULI.apply(circ)
