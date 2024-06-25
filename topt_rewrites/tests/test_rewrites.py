@@ -5,7 +5,7 @@ from pytket.pauli import QubitPauliTensor, Pauli
 from pytket.qasm import circuit_to_qasm, circuit_from_qasm
 
 from topt_rewrites.main import (
-    PROPAGATE_TERMINAL_PAULI,
+    # PROPAGATE_TERMINAL_PAULI,
     REPLACE_HADAMARDS,
     check_rz_angles,
     get_n_conditional_paulis,
@@ -104,8 +104,8 @@ def test_clifford_generation() -> None:
         pbox=phase_poly_box, input_pauli=qpt
     )
 
-    draw(new_pauli_circ)
-    draw(new_s_circ)
+    # draw(new_pauli_circ)
+    # draw(new_s_circ)
     # BUG - new_s_circ is not Clifford
 
 
