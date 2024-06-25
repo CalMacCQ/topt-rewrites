@@ -2,6 +2,7 @@ from pytket.circuit import Circuit, OpType, PhasePolyBox
 from pytket.circuit.display import view_browser as draw
 from pytket.passes import ComposePhasePolyBoxes
 from pytket.pauli import QubitPauliTensor, Pauli
+from pytket.qasm import circuit_to_qasm, circuit_from_qasm
 
 from topt_rewrites.main import (
     PROPAGATE_TERMINAL_PAULI,
@@ -84,22 +85,34 @@ def test_simple_circuit() -> None:
     # PROPAGATE_TERMINAL_PAULI.apply(circ)
     # draw(circ)
 
+    # circ = Circuit(3)
+    # circ.CX(0, 1).T(1).CX(0, 1).H(0).CX(0, 2).T(2).CX(0, 2).CX(0, 1).T(1).H(0).CX(0, 1)
+    # ComposePhasePolyBoxes().apply(circ)
 
-def test_clifford() -> None:
-    circ = Circuit(3)
-    circ.CX(0, 1).T(1).CX(0, 1).H(0).CX(0, 2).T(2).CX(0, 2).CX(0, 1).T(1).H(0).CX(0, 1)
-    ComposePhasePolyBoxes().apply(circ)
+
+def test_clifford_generation() -> None:
+
+    cnot_rz_circ = circuit_from_qasm("cnot_t_2.qasm")
+    draw(cnot_rz_circ)
 
     qpt = QubitPauliTensor(
-        qubits=circ.qubits, paulis=[Pauli.I, Pauli.X, Pauli.I], coeff=1
+        qubits=cnot_rz_circ.qubits,
+        paulis=[Pauli.I, Pauli.X, Pauli.I],
+        coeff=1,
     )
 
-    for cmd in circ:
-        if cmd.op.type == OpType.PhasePolyBox:
-            pauli_prime_circ, s_prime_circ = _get_circuit_fragments(cmd.op, qpt)
-            draw(pauli_prime_circ)
-            draw(s_prime_circ)
-            # BUG s_prime circ is not clifford
+    # Turn into a PhasePolyBox
+    ComposePhasePolyBoxes().apply(cnot_rz_circ)
+
+    phase_poly_box = cnot_rz_circ.get_commands()[0].op
+
+    new_pauli_circ, new_s_circ = _get_circuit_fragments(
+        pbox=phase_poly_box, input_pauli=qpt
+    )
+
+    draw(new_pauli_circ)
+    draw(new_s_circ)
+    # BUG - new_s_circ is not Clifford
 
 
-test_clifford()
+test_clifford_generation()
