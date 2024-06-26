@@ -52,11 +52,17 @@ def _get_updated_paulis(
     pauli_tensors: list[QubitPauliTensor],
     new_pauli: QubitPauliTensor,
 ) -> list[QubitPauliTensor]:
+
+    new_tensors = []
+
     for pauli_op in pauli_tensors:
         if not pauli_op.commutes_with(new_pauli):
-            pauli_op.coeff *= 2
+            new_coeff = pauli_op.coeff * 2
+            new_tensors.append(
+                QubitPauliTensor(string=pauli_op.string, coeff=new_coeff),
+            )
 
-    return pauli_tensors
+    return new_tensors
 
 
 def _get_phase_gadget_circuit(pauli_tensors: list[QubitPauliTensor]) -> Circuit:
