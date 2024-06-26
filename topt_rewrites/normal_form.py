@@ -9,16 +9,14 @@ from pytket.circuit import (
     OpType,
     PhasePolyBox,
 )
-
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit  # noqa: TCH002
 
 from .utils import (
+    get_n_conditional_paulis,
     initialise_registers,
     reverse_circuit,
-    get_n_conditional_paulis,
 )
-
 
 PAULI_PROP_GATES = {
     OpType.PhasePolyBox,
@@ -126,7 +124,6 @@ def _get_conjugation(box: PhasePolyBox | CircBox, x_index: int) -> CircBox:
 
 
 def _get_v_box(circ: Circuit) -> CircBox:
-
     v_circ = initialise_registers(circ)
     v_circ.name = "V"
 

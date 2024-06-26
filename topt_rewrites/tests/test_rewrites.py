@@ -7,14 +7,8 @@ from pytket.qasm import circuit_from_qasm
 from topt_rewrites.clifford import (
     get_circuit_fragments,
 )
-from topt_rewrites.utils import get_n_conditional_paulis, check_rz_angles
-
-import os
-
-cwd = os.getcwd()
-print(cwd)
-
 from topt_rewrites.gadgetisation import REPLACE_HADAMARDS, get_n_internal_hadamards
+from topt_rewrites.utils import check_rz_angles, get_n_conditional_paulis
 
 # _get_cnot_circuit,
 # _get_reversible_tableau,
@@ -22,19 +16,7 @@ from topt_rewrites.gadgetisation import REPLACE_HADAMARDS, get_n_internal_hadama
 
 
 def test_h_gadgetisation() -> None:
-    circ = (
-        Circuit(4)
-        .T(0)
-        .CX(0, 3)
-        .CX(2, 1)
-        .CX(3, 1)
-        .T(3)
-        .H(0)
-        .H(1)
-        .CZ(0, 3)
-        .H(2)
-        .CRy(0.25, 0, 3)
-    )
+    circ = Circuit(4).T(0).CX(0, 3).CX(2, 1).CX(3, 1).T(3).H(0).H(1).CZ(0, 3).H(2).CRy(0.25, 0, 3)
     n_qubits_without_ancillas = circ.n_qubits
     DecomposeBoxes().apply(circ)
     ComposePhasePolyBoxes().apply(circ)
@@ -46,16 +28,7 @@ def test_h_gadgetisation() -> None:
 
 def test_circuit_utils() -> None:
     circ = (
-        Circuit(2)
-        .CX(0, 1)
-        .Rz(1 / 4, 1)
-        .CX(0, 1)
-        .Rz(-1 / 4, 1)
-        .CX(0, 1)
-        .Rz(0.75, 1)
-        .CX(0, 1)
-        .Rz(-0.75, 0)
-        .Rz(-1.25, 1)
+        Circuit(2).CX(0, 1).Rz(1 / 4, 1).CX(0, 1).Rz(-1 / 4, 1).CX(0, 1).Rz(0.75, 1).CX(0, 1).Rz(-0.75, 0).Rz(-1.25, 1)
     )
     assert check_rz_angles(circ)
     circ.Rz(0.61, 0)
@@ -88,7 +61,6 @@ def test_simple_circuit() -> None:
 
 
 def test_clifford_generation() -> None:
-
     cnot_rz_circ = circuit_from_qasm("cnot_t_2.qasm")
     # draw(cnot_rz_circ)
 

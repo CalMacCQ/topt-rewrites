@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pytket._tket.circuit import Circuit, OpType, PauliExpCommutingSetBox
-
 from pytket import Qubit
+from pytket._tket.circuit import Circuit, OpType, PauliExpCommutingSetBox
 from pytket.circuit import PhasePolyBox
 from pytket.extensions.qiskit import qiskit_to_tk
 from pytket.passes import DecomposeBoxes
@@ -85,7 +84,6 @@ def _get_updated_paulis(
     pauli_tensors: list[QubitPauliTensor],
     new_pauli: QubitPauliTensor,
 ) -> list[QubitPauliTensor]:
-
     for pauli_op in pauli_tensors:
         if not pauli_op.commutes_with(new_pauli):
             pauli_op.coeff *= 2
@@ -94,7 +92,6 @@ def _get_updated_paulis(
 
 
 def _get_phase_gadget_circuit(pauli_tensors: list[QubitPauliTensor]) -> Circuit:
-
     pauli_ops = []
     for tensor in pauli_tensors:
         pauli_list = list(tensor.string.map.values())
