@@ -19,13 +19,13 @@ def get_n_internal_hadamards(circ: Circuit) -> int:
 
     total_h_count = circ.n_gates_of_type(OpType.H)
 
+    # Its Possible that a PhasePolyBox is Clifford. Handled in _count_hadamards.
+
     # Count number of Hadamards until we encounter a PhasePolyBox
     lhs_count = _count_hadamards(circ.get_commands())
 
     # Same but from the end of the circuit
     rhs_count = _count_hadamards(reversed(circ.get_commands()))
-
-    # TODO add handling for when a PhasePolyBox is Clifford
 
     return total_h_count - (lhs_count + rhs_count)
 
@@ -35,7 +35,8 @@ def _count_hadamards(commands: list[Command]) -> int:
     for cmd in commands:
         if cmd.op.type == OpType.H:
             h_count += 1
-        elif cmd.op.type == OpType.PhasePolyBox:
+        # If we encounter a non-Clifford PhasePolyBox, stop counting.
+        elif cmd.op.type == OpType.PhasePolyBox and not cmd.op.is_clifford():
             break
     return h_count
 
