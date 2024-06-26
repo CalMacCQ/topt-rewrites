@@ -4,12 +4,15 @@ from pytket.passes import ComposePhasePolyBoxes, DecomposeBoxes
 from pytket.pauli import Pauli, QubitPauliTensor
 from pytket.qasm import circuit_from_qasm
 
-from topt_rewrites.normal_form import (
+from topt_rewrites.clifford import (
     get_circuit_fragments,
-    check_rz_angles,
-    get_n_conditional_paulis,
-    get_n_internal_hadamards,
 )
+from topt_rewrites.utils import get_n_conditional_paulis, check_rz_angles
+
+import os
+
+cwd = os.getcwd()
+print(cwd)
 
 from topt_rewrites.gadgetisation import REPLACE_HADAMARDS, get_n_internal_hadamards
 
@@ -101,12 +104,10 @@ def test_clifford_generation() -> None:
     phase_poly_box: PhasePolyBox = cnot_rz_circ.get_commands()[0].op
 
     new_pauli_circ, new_s_circ = get_circuit_fragments(
-        pbox=phase_poly_box, input_pauli=qpt
+        pbox=phase_poly_box,
+        input_pauli=qpt,
     )
 
     # draw(new_pauli_circ)
     # draw(new_s_circ)
     # BUG - new_s_circ is not Clifford
-
-
-test_clifford_generation()

@@ -13,7 +13,11 @@ from pytket.circuit import (
 from pytket.predicates import GateSetPredicate
 from pytket.unit_id import Bit, Qubit  # noqa: TCH002
 
-from utils import initialise_registers, reverse_circuit, get_n_conditional_paulis
+from .utils import (
+    initialise_registers,
+    reverse_circuit,
+    get_n_conditional_paulis,
+)
 
 
 PAULI_PROP_GATES = {

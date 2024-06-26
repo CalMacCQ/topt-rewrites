@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pytket._tket.circuit import Circuit, OpType, PauliExpCommutingSetBox, Qubit
+from pytket._tket.circuit import Circuit, OpType, PauliExpCommutingSetBox
+
+from pytket import Qubit
 from pytket.circuit import PhasePolyBox
 from pytket.extensions.qiskit import qiskit_to_tk
 from pytket.passes import DecomposeBoxes
