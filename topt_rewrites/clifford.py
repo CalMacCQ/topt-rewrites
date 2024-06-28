@@ -22,6 +22,16 @@ PAULI_DICT = {
 }
 
 
+def pauli_tensor_to_circuit(pauli_tensor: QubitPauliTensor) -> Circuit:
+    """Create a Circuit comprised of single qubit Pauli ops from a QubitPauliTensor."""
+    pauli_circ = Circuit(len(pauli_tensor.string.to_list()))
+
+    for qubit, pauli_op in pauli_tensor.string.map.items():
+        pauli_circ.add_gate(PAULI_DICT[pauli_op], [qubit])
+
+    return pauli_circ
+
+
 def _get_reversible_tableau(pbox: PhasePolyBox) -> UnitaryTableau:
     # cheat by synthesising the CNOT circuit with qiskit and converting
     qc = synth_cnot_count_full_pmh(pbox.linear_transformation, section_size=2)
@@ -132,11 +142,8 @@ def synthesise_clifford(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> Ci
     # Get P' = L * P * L†
     new_pauli: QubitPauliTensor = get_pauli_conjugate(pbox, input_pauli)
 
-    result_circ = Circuit(pbox.n_qubits)
-
-    # Circuit construction for P'
-    for qubit, pauli_op in new_pauli.string.map.items():
-        result_circ.add_gate(PAULI_DICT[pauli_op], [qubit])
+    # Create a Circuit with the Pauli tensor P'
+    result_circ: Circuit = pauli_tensor_to_circuit(new_pauli)
 
     # Convert U to a list of QubitPauliTensors
     s_sequence: list[QubitPauliTensor] = _parities_to_pauli_tensors(pbox)
