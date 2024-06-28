@@ -9,6 +9,8 @@ from pytket.pauli import Pauli, QubitPauliTensor
 from pytket.tableau import UnitaryTableau
 from qiskit.synthesis import synth_cnot_count_full_pmh
 
+from typing import TypeVar
+
 
 from pytket.circuit.display import view_browser as draw
 
@@ -60,7 +62,7 @@ def _get_updated_paulis(
 
     for pauli_op in pauli_tensors:
         if not pauli_op.commutes_with(new_pauli):
-            new_coeff = pauli_op.coeff * 2
+            new_coeff = pauli_op.coeff * (-1)
             new_tensors.append(
                 QubitPauliTensor(string=pauli_op.string, coeff=new_coeff),
             )
@@ -108,6 +110,21 @@ def _get_daggered_phasepolybox(pbox: PhasePolyBox) -> PhasePolyBox:
     ComposePhasePolyBoxes().apply(dg_circ)
 
     return dg_circ.get_commands()[0].op
+
+
+T = TypeVar("T")
+
+
+def _merge_lists(list1: list[T], list2: list[T]) -> list[T]:
+    assert len(list1) == len(list2)
+
+    zipped_lists = tuple(zip(list1, list2))
+
+    result_list = []
+    for _ in range(len(zipped_lists)):
+        result_list.extend(zipped_lists[_])
+
+    return result_list
 
 
 def synthesise_clifford(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> Circuit:
