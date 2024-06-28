@@ -2,20 +2,34 @@ from __future__ import annotations
 
 from glob import glob
 
-from pytket.circuit import PhasePolyBox
+from pytket.circuit import PhasePolyBox, Circuit
 from pytket.circuit.display import view_browser as draw
 from pytket.passes import ComposePhasePolyBoxes
+from pytket.pauli import QubitPauliTensor
 from pytket.predicates import CliffordCircuitPredicate
 from pytket.qasm import circuit_from_qasm
+from pytket.utils import compare_unitaries
 
-from topt_rewrites.clifford import synthesise_clifford
+from topt_rewrites.clifford import synthesise_clifford, pauli_tensor_to_circuit
 from topt_rewrites.utils import tensor_from_x_index
+
+
+def get_test_circuit(p_box: PhasePolyBox, pauli: QubitPauliTensor) -> Circuit:
+    circ = Circuit(p_box.n_qubits)
+    u_circ = p_box.get_circuit()
+    circ.append(u_circ)
+    pauli_circ = pauli_tensor_to_circuit(pauli)
+    circ.append(pauli_circ)
+    u_dg_circ = u_circ.dagger()
+    circ.append(u_dg_circ)
+    return circ
 
 
 def test_clifford_synthesis(
     x_index: int,
-    draw_circuit: bool,
     circuit_list: list[str],
+    draw_circuit: bool = False,
+    check_unitary: bool = False,
 ) -> None:
     """Tests Clifford synthesis method."""
     for circuit_file in circuit_list:
@@ -43,26 +57,25 @@ def test_clifford_synthesis(
         if draw_circuit:
             draw(result_circ)
 
+        if check_unitary:
+            test_circuit = get_test_circuit(phase_poly_box, qpt)
+            draw(test_circuit)
+            test_unitary = test_circuit.get_unitary()
+            result_unitary = result_circ.get_unitary()
+            print(
+                f"Do the unitaries match? {compare_unitaries(test_unitary, result_unitary)}",
+            )
+
 
 if __name__ == "__main__":
-    CIRCUIT_LIST = glob("qasm/*.qasm")
+    # CIRCUIT_LIST = glob("qasm/*.qasm")
+    CIRCUIT_LIST = ["qasm/cnot_t_0.qasm"]
     X_INDEX = 1
-    DRAW_CIRCUIT = False
+    DRAW_CIRCUITS = False
+    CHECK_UNITARY = True
     test_clifford_synthesis(
         x_index=X_INDEX,
-        draw_circuit=DRAW_CIRCUIT,
+        draw_circuit=DRAW_CIRCUITS,
         circuit_list=CIRCUIT_LIST,
+        check_unitary=CHECK_UNITARY,
     )
-
-
-# circ1 = Circuit(2).CX(1, 0).T(0).CX(1, 0).X(1).CX(1, 0).Tdg(0).CX(1, 0)
-#
-# circ2 = Circuit(2).X(1).CX(1, 0).Sdg(0).CX(1, 0)
-#
-# u1 = circ1.get_unitary()
-#
-# u2 = circ2.get_unitary()
-#
-# from pytket.utils import compare_unitaries
-#
-# print(compare_unitaries(u1, u2))
