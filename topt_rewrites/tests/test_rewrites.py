@@ -94,13 +94,9 @@ def test_clifford_generation1() -> None:
 
     phase_poly_box: PhasePolyBox = cnot_rz_circ.get_commands()[0].op
 
-    # new_pauli_circ, new_s_circ = get_circuit_fragments(
-    #    pbox=phase_poly_box,
-    #    input_pauli=qpt,
-    # )
-    # draw(new_pauli_circ)
-    # draw(new_s_circ)
-    # BUG - new_s_circ is not Clifford
+    # BUG - result_circ is not Clifford
+    result_circ = synthesise_clifford(pbox=phase_poly_box, input_pauli=qpt)
+    draw(result_circ)
 
 
 def test_clifford_generation2() -> None:
@@ -118,13 +114,6 @@ def test_clifford_generation2() -> None:
 
     phase_poly_box: PhasePolyBox = cnot_rz_circ.get_commands()[0].op
 
-    # new_pauli_circ, new_s_circ = get_circuit_fragments(
-    #    pbox=phase_poly_box,
-    #    input_pauli=qpt,
-    # )
-
     result_circ = synthesise_clifford(pbox=phase_poly_box, input_pauli=qpt)
     draw(result_circ)
-
-
-test_clifford_generation2()
+    # BUG - result_circ is not Clifford

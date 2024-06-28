@@ -122,21 +122,27 @@ def synthesise_clifford(pbox: PhasePolyBox, input_pauli: QubitPauliTensor) -> Ci
         result_circ.add_gate(PAULI_DICT[pauli_op], [qubit])
 
     # Convert U to a list of QubitPauliTensors
-    s_sequence = _parities_to_pauli_tensors(pbox)
+    s_sequence: list[QubitPauliTensor] = _parities_to_pauli_tensors(pbox)
 
     # Get updated S' sequence
-    s_prime_sequence = _get_updated_paulis(s_sequence, new_pauli)
+    s_prime_sequence: list[QubitPauliTensor] = _get_updated_paulis(
+        s_sequence,
+        new_pauli,
+    )
 
     # Get the PhasePolyBox implementing U†
-    u_dg_box = _get_daggered_phasepolybox(pbox)
+    u_dg_box: PhasePolyBox = _get_daggered_phasepolybox(pbox)
 
     # U† as a list of QubitPauliTensors
-    s_dg_sequence = _parities_to_pauli_tensors(u_dg_box)
+    s_dg_sequence: list[QubitPauliTensor] = _parities_to_pauli_tensors(u_dg_box)
 
     # Get Q sequence by combining operators for S' and S† (Q = S' * S†)
-    q_operator_list = s_prime_sequence + s_dg_sequence
+    q_operator_list: list[QubitPauliTensor] = s_prime_sequence + s_dg_sequence
 
     # Synthesise a Phase gadget sequence for Q (Angles should be Clifford)
     q_operator_circ = _get_phase_gadget_circuit(q_operator_list)
 
-    return result_circ.add_circuit(q_operator_circ, result_circ.qubits)
+    # Combine circuits for P' and Q
+    result_circ.add_circuit(q_operator_circ, result_circ.qubits)
+
+    return result_circ
