@@ -1,4 +1,6 @@
+from pytket import Qubit
 from pytket._tket.circuit import Circuit, Conditional, OpType, PhasePolyBox
+from pytket.pauli import Pauli, QubitPauliTensor
 from pytket.predicates import NoSymbolsPredicate
 
 
@@ -51,6 +53,16 @@ def initialise_registers(circ: Circuit) -> Circuit:
     for bit in circ.bits:
         circ_prime.add_bit(bit)
     return circ_prime
+
+
+def tensor_from_x_index(x_index: int, n_qubits: int) -> QubitPauliTensor:
+    pauli_list = [Pauli.I] * n_qubits
+
+    pauli_list[x_index] = Pauli.X
+
+    qubit_list = [Qubit(n) for n in range(n_qubits)]
+
+    return QubitPauliTensor(paulis=pauli_list, qubits=qubit_list)
 
 
 def reverse_circuit(circ: Circuit) -> Circuit:

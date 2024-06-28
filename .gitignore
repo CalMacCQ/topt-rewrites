@@ -5,3 +5,4 @@ topt_rewrites/__pycache__
 topt_rewrites/tests/__pycache__
 tests/__pycache__
 .pytest_cache
+*.ipynb
