@@ -4,9 +4,7 @@ from pytket.passes import ComposePhasePolyBoxes, DecomposeBoxes
 from pytket.pauli import Pauli, QubitPauliTensor
 from pytket.qasm import circuit_from_qasm
 
-from topt_rewrites.clifford import (
-    get_circuit_fragments,
-)
+from topt_rewrites.clifford import synthesise_clifford
 from topt_rewrites.gadgetisation import REPLACE_HADAMARDS, get_n_internal_hadamards
 from topt_rewrites.utils import check_rz_angles, get_n_conditional_paulis
 
@@ -96,12 +94,12 @@ def test_clifford_generation1() -> None:
 
     phase_poly_box: PhasePolyBox = cnot_rz_circ.get_commands()[0].op
 
-    new_pauli_circ, new_s_circ = get_circuit_fragments(
-        pbox=phase_poly_box,
-        input_pauli=qpt,
-    )
-    draw(new_pauli_circ)
-    draw(new_s_circ)
+    # new_pauli_circ, new_s_circ = get_circuit_fragments(
+    #    pbox=phase_poly_box,
+    #    input_pauli=qpt,
+    # )
+    # draw(new_pauli_circ)
+    # draw(new_s_circ)
     # BUG - new_s_circ is not Clifford
 
 
@@ -120,13 +118,13 @@ def test_clifford_generation2() -> None:
 
     phase_poly_box: PhasePolyBox = cnot_rz_circ.get_commands()[0].op
 
-    new_pauli_circ, new_s_circ = get_circuit_fragments(
-        pbox=phase_poly_box,
-        input_pauli=qpt,
-    )
-    draw(new_pauli_circ)
-    draw(new_s_circ)
-    # Now s_circ is Clifford.. how to construct C?
+    # new_pauli_circ, new_s_circ = get_circuit_fragments(
+    #    pbox=phase_poly_box,
+    #    input_pauli=qpt,
+    # )
+
+    result_circ = synthesise_clifford(pbox=phase_poly_box, input_pauli=qpt)
+    draw(result_circ)
 
 
 test_clifford_generation2()
